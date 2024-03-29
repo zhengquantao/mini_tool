@@ -97,7 +97,7 @@ class ChildFrameTable(wx.MDIChildFrame):
 
 
 class MainFrame(wx.MDIParentFrame):
-    TITLE = "深圳量云"
+    TITLE = cs.main_title
 
     def __init__(self):
         sz = wx.DisplaySize()
