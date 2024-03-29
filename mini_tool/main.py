@@ -1,12 +1,11 @@
 import datetime
-from functools import wraps
 from concurrent.futures.thread import ThreadPoolExecutor
 import wx
 import wx.grid
 import pandas as pd
 
 from mini_tool import constants as cs
-from common import svg_to_bitmap
+from mini_tool.common import svg_to_bitmap, check_graph_df
 from mini_tool.graph.bar_chart import BarChart
 from mini_tool.graph.bar_dialog import BarDialog
 from mini_tool.graph.d3_chart import D3Chart
@@ -16,18 +15,7 @@ from mini_tool.graph.scatter_chart import ScatterChart
 
 from mini_tool.html_server import run_server
 
-THREAD_POOL = ThreadPoolExecutor(2)
-
-
-def check_graph_df(func):
-    @wraps(func)
-    def inner(self, *args, **kwargs):
-        if not hasattr(self, "data_df"):
-            wx.MessageBox("缺数据支撑画图，请选择文件", "错误", wx.YES_NO | wx.ICON_WARNING)
-            return
-
-        return func(self, *args, **kwargs)
-    return inner
+THREAD_POOL = ThreadPoolExecutor(cs.thread_num)
 
 
 class ChildFrame(wx.MDIChildFrame):
@@ -254,7 +242,6 @@ class MainFrame(wx.MDIParentFrame):
         pass
 
     def on_save(self, event):
-
         pass
 
     def on_help(self, event):
