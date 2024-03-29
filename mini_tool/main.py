@@ -146,18 +146,20 @@ class MainFrame(wx.MDIParentFrame):
         self.filehistory.AddFilesToMenu()
 
         # File menu items
+        new_project_item = fileMenu.Append(wx.ID_ANY, '&New Project', 'New a Project')
+        open_project_item = fileMenu.Append(wx.ID_ANY, '&Open Project', 'Open a Project')
         open_item = fileMenu.Append(wx.ID_OPEN, '&Open File', 'Open a file')
-        project_item = fileMenu.Append(wx.ID_ANY, '&Open Project', 'Open a Project')
         save_item = fileMenu.Append(wx.ID_SAVE, '&Save', 'Save a file')
         recent_item = fileMenu.Append(wx.ID_ANY, '&Recent Files', recent)
         quit_item = fileMenu.Append(wx.ID_EXIT, '&Quit', 'Quit application')
 
         # Event bindings
-        self.Bind(wx.EVT_MENU, self.on_open, open_item)
-        self.Bind(wx.EVT_MENU, self.on_project, project_item)
+        self.Bind(wx.EVT_MENU, self.on_new_project, new_project_item)
+        self.Bind(wx.EVT_MENU, self.on_open_project, open_project_item)
+        self.Bind(wx.EVT_MENU, self.on_open_file, open_item)
         self.Bind(wx.EVT_MENU, self.on_save, save_item)
         self.Bind(wx.EVT_MENU, self.on_quit, quit_item)
-        self.Bind(wx.EVT_MENU_RANGE, self.on_file_history, id=wx.ID_FILE1, id2=wx.ID_FILE9)
+        self.Bind(wx.EVT_MENU_RANGE, self.on_project_history, id=wx.ID_FILE1, id2=wx.ID_FILE9)
 
         # Graph menu items
         # 柱状图
@@ -201,19 +203,9 @@ class MainFrame(wx.MDIParentFrame):
         toolbar.Realize()
         self.Show()
         self.create_child_frames()
-
+        self.load_recent_project()
         # 监听HTML服务
         THREAD_POOL.submit(run_server)
-
-    def on_tool_click(self, event):
-        pass
-
-    def on_file_history(self, event):
-        file_num = event.GetId() - wx.ID_FILE1
-        path = self.filehistory.GetHistoryFile(file_num)
-        self.filehistory.AddFileToHistory(path)
-        # reopen file
-        self.read_file(path)
 
     def create_child_frames(self):
         self.top_child_frame = ChildFrame(self, "main")
@@ -223,24 +215,61 @@ class MainFrame(wx.MDIParentFrame):
         # Set child frames to tile HORIZONTAL
         self.Tile(wx.HORIZONTAL)
 
-    def read_file(self, filename):
-        # 将文件路径添加到 FileHistory 中
-        self.filehistory.AddFileToHistory(filename)
-        self.filehistory.Save(self.config)
-        self.config.Flush()
+    def load_recent_project(self):
+        recent_project_path = self.get_recent_project_path()
+        if recent_project_path:
+            self.open_project(recent_project_path)
+        else:
+            # 1.创建并打开项目或者打开项目
+            pass
+
+    def get_recent_project_path(self) -> str:
+        path = self.filehistory.GetHistoryFile(wx.ID_FILE9)
+        return path
+
+    def read_file(self, filename: str):
         self.data_df = pd.read_csv(filename)
         THREAD_POOL.submit(self.bottom_child_frame.show_data, self.data_df)
         # self.bottom_child_frame.show_data(self.data_df)
 
-    def on_open(self, event):
+    def open_project(self, path: str):
+        # 打开项目
+        pass
+
+    def add_history(self, path: str):
+        # 将项目路径添加到 FileHistory 中
+        self.filehistory.AddFileToHistory(path)
+        self.filehistory.Save(self.config)
+        self.config.Flush()
+
+    def on_tool_click(self, event):
+        pass
+
+    def on_project_history(self, event):
+        file_num = event.GetId() - wx.ID_FILE1
+        path = self.filehistory.GetHistoryFile(file_num)
+        self.filehistory.AddFileToHistory(path)
+        # reopen project
+        self.open_project(path)
+
+    def on_open_file(self, event):
         wildcard = "CSV files (*.csv)|*.csv"
         dialog = wx.FileDialog(None, "Choose a file", wildcard=wildcard, style=wx.FD_OPEN)
         if dialog.ShowModal() == wx.ID_OK:
             self.filename = dialog.GetPath()
             self.read_file(self.filename)
+        dialog.Destroy()
 
-    def on_project(self, event):
+    def on_new_project(self, event):
         pass
+
+    def on_open_project(self, event):
+        dialog = wx.DirDialog(self, "Choose a directory:", style=wx.DD_DEFAULT_STYLE)
+        if dialog.ShowModal() == wx.ID_OK:
+            path = dialog.GetPath()
+            print(f"Chosen directory: {path}")
+            self.open_project(path)
+        dialog.Destroy()
 
     def on_save(self, event):
         pass

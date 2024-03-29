@@ -19,7 +19,7 @@ def svg_to_bitmap(svg, size=None, win=None):
 
 
 def random_name(f_type="html"):
-    return f"date{datetime.datetime.now().strftime('%Y%m%d')}{uuid.uuid4().hex}.{f_type}"
+    return f"date{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}.{f_type}"
 
 
 def check_graph_df(func):
