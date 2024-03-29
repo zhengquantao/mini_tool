@@ -22,9 +22,6 @@ class ChildFrame(wx.MDIChildFrame):
     def __init__(self, parent, title):
         wx.MDIChildFrame.__init__(self, parent, -1, title)
 
-        # 监听HTML服务
-        THREAD_POOL.submit(run_server)
-
         # 创建静态文本控件
         self.static_text = wx.TextCtrl(
             self, -1, value=f"当前时间：{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} ———————————————————— "
@@ -100,6 +97,7 @@ class MainFrame(wx.MDIParentFrame):
     TITLE = cs.main_title
 
     def __init__(self):
+
         sz = wx.DisplaySize()
         # 减去导航栏
         sz = (sz[0], sz[1] - 45)
@@ -203,6 +201,9 @@ class MainFrame(wx.MDIParentFrame):
         toolbar.Realize()
         self.Show()
         self.create_child_frames()
+
+        # 监听HTML服务
+        THREAD_POOL.submit(run_server)
 
     def on_tool_click(self, event):
         pass
