@@ -1,5 +1,4 @@
 import datetime
-import uuid
 from functools import wraps
 import wx
 import wx.svg
@@ -14,7 +13,8 @@ def svg_to_bitmap(svg, size=None, win=None):
     bmp = wx.svg.SVGimage.CreateFromBytes(str.encode(svg))
     bmp = bmp.ConvertToScaledBitmap(size, win)
     if win:
-        bmp.SetScaleFactor(win.GetContentScaleFactor())
+        # bmp.SetScaleFactor(win.GetContentScaleFactor())
+        pass
     return bmp
 
 

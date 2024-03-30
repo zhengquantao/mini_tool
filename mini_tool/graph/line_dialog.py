@@ -54,19 +54,19 @@ class LineDialog(wx.Dialog):
 
         self.m_button1.Bind(wx.EVT_LEFT_UP, self.m_button1OnLeftUp)
         # self.m_button2.Bind(wx.EVT_LEFT_UP, self.m_button2OnLeftUp)
-        self.Bind(wx.EVT_CLOSE, self.on_clone)
+        self.Bind(wx.EVT_CLOSE, self.on_close)
 
     def __del__(self):
         pass
 
-    def on_clone(self, event):
+    def on_close(self, event):
         self.Destroy()
 
     # Virtual event handlers, overide them in your derived class
     def m_button2OnLeftUp(self, event):
-        self.on_clone(event)
+        self.on_close(event)
         # event.Skip()
 
     def m_button1OnLeftUp(self, event):
-        self.on_clone(event)
+        self.on_close(event)
         # event.Skip()

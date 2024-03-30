@@ -1,3 +1,4 @@
+import os
 import datetime
 from concurrent.futures.thread import ThreadPoolExecutor
 import wx
@@ -42,7 +43,7 @@ class ChildFrame(wx.MDIChildFrame):
     #         self.SetPosition((0, self.GetParent().GetSize()[1] - self.GetSize()[1]))
 
 
-class ChildFrameTable(wx.MDIChildFrame):
+class ChildTableFrame(wx.MDIChildFrame):
     def __init__(self, parent, title):
         wx.MDIChildFrame.__init__(self, parent, -1, title)
         self.grid = wx.grid.Grid(self)
@@ -93,6 +94,144 @@ class ChildFrameTable(wx.MDIChildFrame):
         self.grid.EndBatch()
 
 
+class TreeFrame(wx.MDIChildFrame):
+
+    def __init__(self, parent, title="目录", path=None):
+        wx.MDIChildFrame.__init__(self, parent, -1, title, pos=(0, 0), size=(300, 500))
+        self.tree = wx.TreeCtrl(self)
+        root = self.tree.AddRoot('ProjectRoot', data=path)
+
+        self.tree.SetItemData(root, path)
+        self.build_tree(path, root)
+        self.tree.Expand(root)
+
+        self.tree.Bind(wx.EVT_TREE_ITEM_RIGHT_CLICK, self.on_right_click)
+        self.tree.Bind(wx.EVT_TREE_ITEM_EXPANDED, self.on_item_expanded)
+        self.tree.Bind(wx.EVT_TREE_ITEM_COLLAPSED, self.on_item_collapsed)
+        self.tree.Bind(wx.EVT_TREE_SEL_CHANGED, self.on_sel_changed)
+        self.tree.Bind(wx.EVT_TREE_SEL_CHANGING, self.on_sel_changing)
+        self.Layout()
+        self.Show()
+
+    def build_tree(self, dir_path, parent_item):
+        for item in os.listdir(dir_path):
+            item_path = os.path.join(dir_path, item)
+            if os.path.isdir(item_path):
+                new_item = self.tree.AppendItem(parent_item, item)
+                self.tree.SetItemData(new_item, item_path)
+                self.build_tree(item_path, new_item)
+            else:
+                new_item = self.tree.AppendItem(parent_item, item)
+                self.tree.SetItemData(new_item, item_path)
+
+    def on_right_click(self, event):
+        menu = wx.Menu()
+        delete_item = menu.Append(wx.ID_ANY, 'Delete')
+        open_item = menu.Append(wx.ID_ANY, 'Open')
+        rename_item = menu.Append(wx.ID_ANY, 'Rename')
+
+        self.Bind(wx.EVT_MENU, self.on_delete, delete_item)
+        self.Bind(wx.EVT_MENU, self.on_open, open_item)
+        self.Bind(wx.EVT_MENU, self.on_rename, rename_item)
+
+        self.PopupMenu(menu)
+
+    def on_delete(self, event):
+        item = self.tree.GetSelection()
+        path = self.tree.GetItemData(item)
+        print(f"Delete clicked, path: {path}")
+
+    def on_open(self, event):
+        item = self.tree.GetSelection()
+        path = self.tree.GetItemData(item)
+        print(f"Open clicked, path: {path}")
+
+    def on_rename(self, event):
+        item = self.tree.GetSelection()
+        path = self.tree.GetItemData(item)
+        print(f"Rename clicked, path: {path}")
+
+    def on_item_expanded(self, event):
+        print("Item expanded!")
+
+    def on_item_collapsed(self, event):
+        print("Item collapsed!")
+
+    def on_sel_changed(self, event):
+        print("Selection changed")
+
+    def on_sel_changing(self, event):
+        print("Selection changing")
+
+
+class InitDialog(wx.Dialog):
+    def __init__(self, parent):
+        wx.Dialog.__init__(self, parent, -1, "初始化APP", size=(300, 200))
+        self.main_windows = parent
+        # 创建位图
+        # new_project_bitmap = wx.ArtProvider.GetBitmap(wx.ART_NEW_DIR, wx.ART_BUTTON, size=(100, 100))
+        # open_project_bitmap = wx.ArtProvider.GetBitmap(wx.ART_FILE_OPEN, wx.ART_BUTTON, size=(100, 100))
+        new_project_bitmap = wx.Bitmap(svg_to_bitmap(cs.init1_svg, size=(90, 90)))
+        open_project_bitmap = wx.Bitmap(svg_to_bitmap(cs.init2_svg, size=(90, 90)))
+        # 创建带有图标的按钮
+        new_project_button = wx.BitmapButton(self, wx.ID_ANY, new_project_bitmap, size=(100, 100))
+        open_project_button = wx.BitmapButton(self, wx.ID_ANY, open_project_bitmap,  size=(100, 100))
+
+        # 设置按钮的提示信息
+        new_project_button.SetToolTip("新建项目")
+        open_project_button.SetToolTip("打开项目")
+
+        # 创建一个水平方向的布局管理器
+        sizer = wx.BoxSizer(wx.HORIZONTAL)
+
+        # 将按钮添加到布局管理器中
+        sizer.Add(new_project_button, 0, wx.ALL, 20)
+        sizer.Add(open_project_button, 0, wx.ALL, 20)
+
+        new_project_button.Bind(wx.EVT_LEFT_UP, self.on_new_project)
+        open_project_button.Bind(wx.EVT_LEFT_UP, self.on_open_project)
+        self.Bind(wx.EVT_CLOSE, self.on_close)
+
+        self.Center()
+        self.SetSizer(sizer)
+        self.Layout()
+
+    def on_close(self, event):
+        self.main_windows.Destroy()
+
+    def on_new_project(self, event):
+        # event.Skip()
+        self.EndModal(wx.ID_NEW)
+
+    def on_open_project(self, event):
+        # event.Skip()
+        self.EndModal(wx.ID_OPEN)
+        pass
+
+
+class CreateDirectoryDialog(wx.Dialog):
+    def __init__(self, parent, title="新建项目"):
+        wx.Dialog.__init__(self, parent, title=title, size=(250, 150))
+        panel = wx.Panel(self)
+        vbox = wx.BoxSizer(wx.VERTICAL)
+
+        self.label = wx.StaticText(panel, label="请输入项目名:")
+        vbox.Add(self.label, flag=wx.EXPAND | wx.ALL, border=5)
+
+        self.directory_name_text = wx.TextCtrl(panel)
+        vbox.Add(self.directory_name_text, flag=wx.EXPAND | wx.ALL, border=5)
+
+        self.button = wx.Button(panel, label="保存")
+        self.button.Bind(wx.EVT_BUTTON, self.on_save)
+        vbox.Add(self.button, flag=wx.EXPAND | wx.ALL, border=5)
+
+        panel.SetSizer(vbox)
+        self.Center()
+
+    def on_save(self, event):
+        self.EndModal(wx.ID_OK)
+
+
 class MainFrame(wx.MDIParentFrame):
     TITLE = cs.main_title
 
@@ -105,36 +244,44 @@ class MainFrame(wx.MDIParentFrame):
         icon = wx.Icon()
         icon.CopyFromBitmap(svg_to_bitmap(cs.icon_svg,  win=self))
         self.SetIcon(icon)
-        self.filename = ""
+        self.project_path = "./"
 
         # 创建一个工具栏
-        toolbar = self.CreateToolBar()
+        toolbar = self.CreateToolBar(id=wx.ID_ANY, style=wx.TB_TEXT | wx.TB_HORIZONTAL)
         toolbar.SetToolBitmapSize((20, 20))
         # 添加一个文本按钮
-        open_file_tool = toolbar.AddTool(wx.ID_ANY, 'TextTool', wx.Bitmap(svg_to_bitmap(cs.of_svg)), "打开文件")
-        open_project_tool = toolbar.AddTool(wx.ID_ANY, 'IconTool', wx.Bitmap(svg_to_bitmap(cs.op_svg)), "打开项目")
-        save_tool = toolbar.AddTool(wx.ID_ANY, 'TextTool', wx.Bitmap(svg_to_bitmap(cs.save_svg)), "保存")
-        back_tool = toolbar.AddTool(wx.ID_ANY, 'IconTool', wx.Bitmap(svg_to_bitmap(cs.back_svg)), "返回")
-        exit_tool = toolbar.AddTool(wx.ID_ANY, 'IconTool', wx.Bitmap(svg_to_bitmap(cs.exit_svg)), "退出")
-        copy_tool = toolbar.AddTool(wx.ID_ANY, 'IconTool', wx.Bitmap(svg_to_bitmap(cs.copy_svg)), "复制")
-        paste_tool = toolbar.AddTool(wx.ID_ANY, 'IconTool', wx.Bitmap(svg_to_bitmap(cs.paste_svg)), "粘贴")
-        cut_tool = toolbar.AddTool(wx.ID_ANY, 'IconTool', wx.Bitmap(svg_to_bitmap(cs.cut_svg)), "剪切")
+        directory_tool = toolbar.AddTool(wx.ID_ANY, 'List', wx.Bitmap(svg_to_bitmap(cs.List_svg)), "打开目录")
+        open_file_tool = toolbar.AddTool(wx.ID_ANY, 'File', wx.Bitmap(svg_to_bitmap(cs.of_svg)), "打开文件")
+        open_project_tool = toolbar.AddTool(wx.ID_ANY, 'Project', wx.Bitmap(svg_to_bitmap(cs.op_svg)), "打开项目")
+        save_tool = toolbar.AddTool(wx.ID_ANY, 'Save', wx.Bitmap(svg_to_bitmap(cs.save_svg)), "保存")
+        back_tool = toolbar.AddTool(wx.ID_ANY, 'Back', wx.Bitmap(svg_to_bitmap(cs.back_svg)), "返回")
+        exit_tool = toolbar.AddTool(wx.ID_ANY, 'Exit', wx.Bitmap(svg_to_bitmap(cs.exit_svg)), "退出")
+        copy_tool = toolbar.AddTool(wx.ID_ANY, 'Copy', wx.Bitmap(svg_to_bitmap(cs.copy_svg)), "复制")
+        paste_tool = toolbar.AddTool(wx.ID_ANY, 'Paste', wx.Bitmap(svg_to_bitmap(cs.paste_svg)), "粘贴")
+        cut_tool = toolbar.AddTool(wx.ID_ANY, 'Cut', wx.Bitmap(svg_to_bitmap(cs.cut_svg)), "剪切")
 
+        self.Bind(wx.EVT_TOOL, self.on_directory_click, directory_tool)
         self.Bind(wx.EVT_TOOL, self.on_tool_click, open_file_tool)
+        self.Bind(wx.EVT_TOOL, self.on_tool_click, open_project_tool)
+        self.Bind(wx.EVT_TOOL, self.on_tool_click, save_tool)
+        self.Bind(wx.EVT_TOOL, self.on_tool_click, back_tool)
         self.Bind(wx.EVT_TOOL, self.on_tool_click, exit_tool)
+        self.Bind(wx.EVT_TOOL, self.on_tool_click, copy_tool)
+        self.Bind(wx.EVT_TOOL, self.on_tool_click, paste_tool)
+        self.Bind(wx.EVT_TOOL, self.on_tool_click, cut_tool)
 
         # Menu
         menubar = wx.MenuBar()
-        fileMenu = wx.Menu()
-        graphMenu = wx.Menu()
-        editMenu = wx.Menu()
-        toolMenu = wx.Menu()
-        helpMenu = wx.Menu()
-        menubar.Append(fileMenu, '&File')
-        menubar.Append(graphMenu, '&Graph')
-        menubar.Append(editMenu, '&Edit')
-        menubar.Append(toolMenu, '&Tools')
-        menubar.Append(helpMenu, '&Help')
+        file_menu = wx.Menu()
+        graph_menu = wx.Menu()
+        edit_menu = wx.Menu()
+        tool_menu = wx.Menu()
+        help_menu = wx.Menu()
+        menubar.Append(file_menu, '&File')
+        menubar.Append(graph_menu, '&Graph')
+        menubar.Append(edit_menu, '&Edit')
+        menubar.Append(tool_menu, '&Tools')
+        menubar.Append(help_menu, '&Help')
         self.SetMenuBar(menubar)
 
         # 创建 FileHistory 对象
@@ -146,12 +293,12 @@ class MainFrame(wx.MDIParentFrame):
         self.filehistory.AddFilesToMenu()
 
         # File menu items
-        new_project_item = fileMenu.Append(wx.ID_ANY, '&New Project', 'New a Project')
-        open_project_item = fileMenu.Append(wx.ID_ANY, '&Open Project', 'Open a Project')
-        open_item = fileMenu.Append(wx.ID_OPEN, '&Open File', 'Open a file')
-        save_item = fileMenu.Append(wx.ID_SAVE, '&Save', 'Save a file')
-        recent_item = fileMenu.Append(wx.ID_ANY, '&Recent Files', recent)
-        quit_item = fileMenu.Append(wx.ID_EXIT, '&Quit', 'Quit application')
+        new_project_item = file_menu.Append(wx.ID_ANY, '&New Project', 'New a Project')
+        open_project_item = file_menu.Append(wx.ID_ANY, '&Open Project', 'Open a Project')
+        open_item = file_menu.Append(wx.ID_OPEN, '&Open File', 'Open a file')
+        save_item = file_menu.Append(wx.ID_SAVE, '&Save', 'Save a file')
+        recent_item = file_menu.Append(wx.ID_ANY, '&Recent Files', recent)
+        quit_item = file_menu.Append(wx.ID_EXIT, '&Quit', 'Quit application')
 
         # Event bindings
         self.Bind(wx.EVT_MENU, self.on_new_project, new_project_item)
@@ -163,23 +310,23 @@ class MainFrame(wx.MDIParentFrame):
 
         # Graph menu items
         # 柱状图
-        bar_chart_item = graphMenu.Append(wx.ID_ANY, 'Bar Chart', 'Generate a bar chart')
+        bar_chart_item = graph_menu.Append(wx.ID_ANY, 'Bar Chart', 'Generate a bar chart')
         # 折线图
-        line_plot_item = graphMenu.Append(wx.ID_ANY, 'Line Plot', 'Generate a line plot')
+        line_plot_item = graph_menu.Append(wx.ID_ANY, 'Line Plot', 'Generate a line plot')
         # 3D图
-        d3_plot_item = graphMenu.Append(wx.ID_ANY, '3D Plot', 'Generate 3D plot')
+        d3_plot_item = graph_menu.Append(wx.ID_ANY, '3D Plot', 'Generate 3D plot')
         # 散点图
-        scatter_plot_item = graphMenu.Append(wx.ID_ANY, 'scatter Plot', 'Generate scatter plot')
+        scatter_plot_item = graph_menu.Append(wx.ID_ANY, 'scatter Plot', 'Generate scatter plot')
         # 3D散点图
-        d3_scatter_plot_item = graphMenu.Append(wx.ID_ANY, 'scatter 3D Plot', 'Generate 3D scatter plot')
+        d3_scatter_plot_item = graph_menu.Append(wx.ID_ANY, 'scatter 3D Plot', 'Generate 3D scatter plot')
         # 极坐标图
-        polar_plot_item = graphMenu.Append(wx.ID_ANY, 'polar Plot', 'Generate polar plot')
+        polar_plot_item = graph_menu.Append(wx.ID_ANY, 'polar Plot', 'Generate polar plot')
         # 雷达图
-        radar_plot_item = graphMenu.Append(wx.ID_ANY, 'radar Plot', 'Generate radar plot')
+        radar_plot_item = graph_menu.Append(wx.ID_ANY, 'radar Plot', 'Generate radar plot')
         # 数据集
-        dataset_plot_item = graphMenu.Append(wx.ID_ANY, 'dataset Plot', 'Generate dataset plot')
+        dataset_plot_item = graph_menu.Append(wx.ID_ANY, 'dataset Plot', 'Generate dataset plot')
         # 关系图
-        graph_plot_item = graphMenu.Append(wx.ID_ANY, 'graph Plot', 'Generate graph plot')
+        graph_plot_item = graph_menu.Append(wx.ID_ANY, 'graph Plot', 'Generate graph plot')
         # Event bindings
         self.Bind(wx.EVT_MENU, self.on_bar_chart, bar_chart_item)
         self.Bind(wx.EVT_MENU, self.on_line_plot, line_plot_item)
@@ -192,13 +339,13 @@ class MainFrame(wx.MDIParentFrame):
         self.Bind(wx.EVT_MENU, self.on_graph_plot, graph_plot_item)
 
         # Graph menu items
-        help_item = helpMenu.Append(wx.ID_ANY, '&Help', 'Help')
-        contact_item = helpMenu.Append(wx.ID_ANY, '&Contact Us', 'Contact Us')
-        about_item = helpMenu.Append(wx.ID_ANY, '&About', 'About Gui')
+        help_item = help_menu.Append(wx.ID_ANY, '&Help', 'Help')
+        contact_item = help_menu.Append(wx.ID_ANY, '&Contact Us', 'Contact Us')
+        about_item = help_menu.Append(wx.ID_ANY, '&About', 'About Gui')
         self.Bind(wx.EVT_MENU, self.on_help, help_item)
         self.Bind(wx.EVT_MENU, self.on_contact, contact_item)
         self.Bind(wx.EVT_MENU, self.on_about, about_item)
-
+        self.Bind(wx.EVT_CLOSE, self.on_quit)
         # Parent
         toolbar.Realize()
         self.Show()
@@ -209,7 +356,7 @@ class MainFrame(wx.MDIParentFrame):
 
     def create_child_frames(self):
         self.top_child_frame = ChildFrame(self, "main")
-        self.bottom_child_frame = ChildFrameTable(self, "table")
+        self.bottom_child_frame = ChildTableFrame(self, "table")
         self.bottom_child_frame.Show()
         self.top_child_frame.Show()
         # Set child frames to tile HORIZONTAL
@@ -220,11 +367,57 @@ class MainFrame(wx.MDIParentFrame):
         if recent_project_path:
             self.open_project(recent_project_path)
         else:
-            # 1.创建并打开项目或者打开项目
-            pass
+            init_dialog = InitDialog(self)
+            result = init_dialog.ShowModal()
+            # 创建并打开项目
+            if result == wx.ID_NEW:
+                n_res = self.new_project_dialog()
+                n_res or self.load_recent_project()
+
+            # 打开项目
+            init_dialog.Destroy()
+            o_res = self.open_project_dialog()
+            o_res or self.load_recent_project()
+
+    def new_project_dialog(self) -> bool:
+        create_dialog = CreateDirectoryDialog(self)
+        if create_dialog.ShowModal() == wx.ID_OK:
+            directory_name = create_dialog.directory_name_text.GetValue()
+            if not directory_name:
+                return False
+
+            select_dialog = wx.DirDialog(self, "请选择文件保存路径：", style=wx.DD_DEFAULT_STYLE)
+            if select_dialog.ShowModal() != wx.ID_OK:
+                return False
+            path = os.path.join(select_dialog.GetPath(), directory_name)
+            print(f"Chosen directory: {path}")
+            os.makedirs(path)
+            self.add_history(path)
+            self.open_project(path)
+            return True
+
+        create_dialog.Destroy()
+        return False
+
+    def open_project_dialog(self) -> bool:
+        dialog = wx.DirDialog(self, "Choose a directory:", style=wx.DD_DEFAULT_STYLE)
+        if dialog.ShowModal() == wx.ID_OK:
+            path = dialog.GetPath()
+            print(f"Chosen directory: {path}")
+            self.add_history(path)
+            self.open_project(path)
+            return True
+        return False
+
+    def create_and_open_project(self):
+        pass
 
     def get_recent_project_path(self) -> str:
-        path = self.filehistory.GetHistoryFile(wx.ID_FILE9)
+
+        if not self.filehistory.GetCount():
+            return ""
+
+        path = self.filehistory.GetHistoryFile(0)
         return path
 
     def read_file(self, filename: str):
@@ -234,6 +427,7 @@ class MainFrame(wx.MDIParentFrame):
 
     def open_project(self, path: str):
         # 打开项目
+        TreeFrame(self, title=path, path=path)
         pass
 
     def add_history(self, path: str):
@@ -241,6 +435,9 @@ class MainFrame(wx.MDIParentFrame):
         self.filehistory.AddFileToHistory(path)
         self.filehistory.Save(self.config)
         self.config.Flush()
+
+    def on_directory_click(self, event):
+        tree_frame = TreeFrame(self, title=self.project_path, path=self.project_path)
 
     def on_tool_click(self, event):
         pass
@@ -256,20 +453,15 @@ class MainFrame(wx.MDIParentFrame):
         wildcard = "CSV files (*.csv)|*.csv"
         dialog = wx.FileDialog(None, "Choose a file", wildcard=wildcard, style=wx.FD_OPEN)
         if dialog.ShowModal() == wx.ID_OK:
-            self.filename = dialog.GetPath()
-            self.read_file(self.filename)
+            filename = dialog.GetPath()
+            self.read_file(filename)
         dialog.Destroy()
 
     def on_new_project(self, event):
-        pass
+        self.new_project_dialog()
 
     def on_open_project(self, event):
-        dialog = wx.DirDialog(self, "Choose a directory:", style=wx.DD_DEFAULT_STYLE)
-        if dialog.ShowModal() == wx.ID_OK:
-            path = dialog.GetPath()
-            print(f"Chosen directory: {path}")
-            self.open_project(path)
-        dialog.Destroy()
+        self.open_project_dialog()
 
     def on_save(self, event):
         pass
@@ -285,6 +477,7 @@ class MainFrame(wx.MDIParentFrame):
     def on_quit(self, event):
         if wx.MessageBox("是否确认要对出", "警告", wx.YES_NO | wx.ICON_WARNING) == wx.YES:
             self.Close()
+            self.Destroy()
 
     def on_about(self, event):
         pass
