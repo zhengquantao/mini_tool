@@ -33,14 +33,12 @@ class ChildFrame(wx.MDIChildFrame):
         # 将静态文本控件添加到 MDIChildFrame 窗口中
         sizer = wx.BoxSizer(wx.VERTICAL)
         sizer.Add(self.static_text, 1, wx.EXPAND)
+        self.Bind(wx.EVT_CLOSE, self.on_close)
         self.SetSizer(sizer)
         self.Layout()
 
-    #     self.Bind(wx.EVT_ICONIZE, self.on_iconize)
-    #
-    # def on_iconize(self, event):
-    #     if self.IsIconized():
-    #         self.SetPosition((0, self.GetParent().GetSize()[1] - self.GetSize()[1]))
+    def on_close(self, event):
+        self.Iconize(True)
 
 
 class ChildTableFrame(wx.MDIChildFrame):
@@ -58,11 +56,10 @@ class ChildTableFrame(wx.MDIChildFrame):
         sizer.Add(self.grid, 1, wx.EXPAND)
 
         self.SetSizer(sizer)
-    #     self.Bind(wx.EVT_ICONIZE, self.on_iconize)
-    #
-    # def on_iconize(self, event):
-    #     if self.IsIconized():
-    #         self.SetPosition((0, self.GetParent().GetSize()[1] - self.GetSize()[1]))
+        self.Bind(wx.EVT_CLOSE, self.on_close)
+
+    def on_close(self, event):
+        self.Iconize(True)
 
     def show_data(self, data):
         # Clear old data
@@ -110,8 +107,11 @@ class TreeFrame(wx.MDIChildFrame):
         self.tree.Bind(wx.EVT_TREE_ITEM_COLLAPSED, self.on_item_collapsed)
         self.tree.Bind(wx.EVT_TREE_SEL_CHANGED, self.on_sel_changed)
         self.tree.Bind(wx.EVT_TREE_SEL_CHANGING, self.on_sel_changing)
+        self.Bind(wx.EVT_CLOSE, self.on_close)
         self.Layout()
-        self.Show()
+
+    def on_close(self, event):
+        self.Iconize(True)
 
     def build_tree(self, dir_path, parent_item):
         for item in os.listdir(dir_path):
@@ -198,6 +198,7 @@ class InitDialog(wx.Dialog):
 
     def on_close(self, event):
         self.main_windows.Destroy()
+        # sys.exit(1)
 
     def on_new_project(self, event):
         # event.Skip()
@@ -239,12 +240,13 @@ class MainFrame(wx.MDIParentFrame):
 
         sz = wx.DisplaySize()
         # 减去导航栏
-        sz = (sz[0], sz[1] - 45)
+        # sz = (sz[0], sz[1] - 45)
         wx.MDIParentFrame.__init__(self, None, title=self.TITLE, size=sz)
         icon = wx.Icon()
         icon.CopyFromBitmap(svg_to_bitmap(cs.icon_svg,  win=self))
         self.SetIcon(icon)
         self.project_path = "./"
+        self.tree_frame = None
 
         # 创建一个工具栏
         toolbar = self.CreateToolBar(id=wx.ID_ANY, style=wx.TB_TEXT | wx.TB_HORIZONTAL)
@@ -417,8 +419,8 @@ class MainFrame(wx.MDIParentFrame):
         if not self.filehistory.GetCount():
             return ""
 
-        path = self.filehistory.GetHistoryFile(0)
-        return path
+        self.project_path = self.filehistory.GetHistoryFile(0)
+        return self.project_path
 
     def read_file(self, filename: str):
         self.data_df = pd.read_csv(filename)
@@ -426,8 +428,9 @@ class MainFrame(wx.MDIParentFrame):
         # self.bottom_child_frame.show_data(self.data_df)
 
     def open_project(self, path: str):
-        # 打开项目
-        TreeFrame(self, title=path, path=path)
+        # 展示项目tree
+        self.tree_frame = TreeFrame(self, title=path, path=path)
+        self.tree_frame.Show()
         pass
 
     def add_history(self, path: str):
@@ -437,7 +440,15 @@ class MainFrame(wx.MDIParentFrame):
         self.config.Flush()
 
     def on_directory_click(self, event):
-        tree_frame = TreeFrame(self, title=self.project_path, path=self.project_path)
+        if self.tree_frame:
+            if self.tree_frame.IsIconized():
+                self.tree_frame.Iconize(False)
+            else:
+                self.tree_frame.Iconize(True)
+            return
+
+        self.tree_frame = TreeFrame(self, title=self.project_path, path=self.project_path)
+        self.tree_frame.Show()
 
     def on_tool_click(self, event):
         pass
@@ -475,8 +486,8 @@ class MainFrame(wx.MDIParentFrame):
         pass
 
     def on_quit(self, event):
-        if wx.MessageBox("是否确认要对出", "警告", wx.YES_NO | wx.ICON_WARNING) == wx.YES:
-            self.Close()
+        status = wx.MessageBox("是否确认要退出", "警告", wx.YES_NO | wx.NO_DEFAULT | wx.ICON_WARNING)
+        if status == wx.YES:
             self.Destroy()
 
     def on_about(self, event):

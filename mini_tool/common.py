@@ -13,8 +13,7 @@ def svg_to_bitmap(svg, size=None, win=None):
     bmp = wx.svg.SVGimage.CreateFromBytes(str.encode(svg))
     bmp = bmp.ConvertToScaledBitmap(size, win)
     if win:
-        # bmp.SetScaleFactor(win.GetContentScaleFactor())
-        pass
+        bmp.SetScaleFactor(win.GetContentScaleFactor())
     return bmp
 
 
