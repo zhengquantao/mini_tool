@@ -240,7 +240,7 @@ class MainFrame(wx.MDIParentFrame):
 
         sz = wx.DisplaySize()
         # 减去导航栏
-        # sz = (sz[0], sz[1] - 45)
+        sz = (sz[0], sz[1] - 65)
         wx.MDIParentFrame.__init__(self, None, title=self.TITLE, size=sz)
         icon = wx.Icon()
         icon.CopyFromBitmap(svg_to_bitmap(cs.icon_svg,  win=self))
@@ -375,7 +375,7 @@ class MainFrame(wx.MDIParentFrame):
             if result == wx.ID_NEW:
                 n_res = self.new_project_dialog()
                 n_res or self.load_recent_project()
-
+                return
             # 打开项目
             init_dialog.Destroy()
             o_res = self.open_project_dialog()
@@ -489,6 +489,7 @@ class MainFrame(wx.MDIParentFrame):
         status = wx.MessageBox("是否确认要退出", "警告", wx.YES_NO | wx.NO_DEFAULT | wx.ICON_WARNING)
         if status == wx.YES:
             self.Destroy()
+            os._exit(0)
 
     def on_about(self, event):
         pass
