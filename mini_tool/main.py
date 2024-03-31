@@ -429,6 +429,7 @@ class MainFrame(wx.MDIParentFrame):
 
     def open_project(self, path: str):
         # 展示项目tree
+        self.tree_frame and self.tree_frame.Destroy() and setattr(self, "tree_frame", None)
         self.tree_frame = TreeFrame(self, title=path, path=path)
         self.tree_frame.Show()
         pass
